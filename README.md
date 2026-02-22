@@ -41,3 +41,8 @@ The core of the model is a custom Residual Block integrated with a Squeeze and E
 ### 2. Advanced Feature Extraction - Integrating CBAM
  
 To systematically reduce avoidable bias and improve the sensitivity of the model, I transitioned from simple Squeeze and Excitation (SE) to CBAM (Convolutional Block Attention Module). This was critical for capturing the multi dimensional nature of 12-lead ECG signals.
+
+#### Dual-Attention Mechanism
+Unlike the SE-block which only focuses on lead importance, the CBAM blocks I implemented perform two sequential operations:
+* Channel Attention: Identifies which of the 12 leads contain the most relevant diagnostic features.
+* Spatial Attention: Focuses on the temporal axis (the 1000 time steps), allowing the model to "lock onto" specific segments of the heartbeat, such as the ST-segment or the QRS complex, where pathologies typically manifest.
