@@ -125,7 +125,7 @@ The transition to a dual-attention mechanism (CBAM) allowed the model to focus o
 
 <img width="657" height="197" alt="Screenshot 2026-02-22 at 11 35 23" src="https://github.com/user-attachments/assets/7ee896d1-5627-4ce4-ba60-6e2ca865e790" />
 
-###Diagnostic Superclass Breakdown (Final Model)
+### Diagnostic Superclass Breakdown (Final Model)
 
 <img width="604" height="214" alt="Screenshot 2026-02-22 at 11 37 00" src="https://github.com/user-attachments/assets/0cc538a7-2f0b-4853-81ea-6e95b9cd6600" />
 
