@@ -38,11 +38,16 @@ The core of the model is a custom Residual Block integrated with a Squeeze and E
 * Residual Connections: These allow for training deeper networks by preventing vanishing gradients, enabling the model to learn complex morphological patterns.
 * SE Blocks: I implemented lead-wise attention to dynamically weight the importance of each of the 12 ECG leads, helping the model focus on the most diagnostic channels for specific pathologies
 
+#### Multi Task Adaptation: Binary vs Multi Class:
+I adapted the architecture to handle two distinct clinical prediction tasks:
+* Binary Classification: Optimized for specific "Yes/No" diagnostic questions (e.g., Normal vs. Abnormal). This version uses a single output node with a Sigmoid activation and Binary Crossentropy loss.
+* Multi-Class (Multi-Label) Classification: Designed to handle the clinical reality of co-occurring diseases. This version outputs probabilities for the 5 diagnostic superclasses (NORM, MI, STTC, CD, HYP) using a multi-output Sigmoid layer and multi-hot encoded labels.
+
 ### 2. Advanced Feature Extraction - Integrating CBAM
  
 To systematically reduce avoidable bias and improve the sensitivity of the model, I transitioned from simple Squeeze and Excitation (SE) to CBAM (Convolutional Block Attention Module). This was critical for capturing the multi dimensional nature of 12-lead ECG signals.
 
-#### Dual-Attention Mechanism
+#### Dual-Attention Mechanism:
 Unlike the SE-block which only focuses on lead importance, the CBAM blocks I implemented perform two sequential operations:
 * Channel Attention: Identifies which of the 12 leads contain the most relevant diagnostic features.
 * Spatial Attention: Focuses on the temporal axis (the 1000 time steps), allowing the model to "lock onto" specific segments of the heartbeat, such as the ST-segment or the QRS complex, where pathologies typically manifest.
