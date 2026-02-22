@@ -2,7 +2,7 @@
 ## Project Overview
 This project evaluates the efficacy of 1D Convolutional Neural Networks (CNN) using Residual Architectures for the automated interpretation of 12-lead Electrocardiograms (ECG). The goal was to investigate how deep residual learning can extract high level morphological features from raw waveforms to predict major cardiovascular disease (CVD) superclasses.
 
-## Dataset: PTB-XL, a large publicly available electrocardiography dataset
+## Dataset: PTB-XL, a large publicly available electrocardiography dataset (https://physionet.org/content/ptb-xl/1.0.3/)
 The PTB-XL dataset is currently the largest freely accessible clinical 12-lead ECG waveform dataset. It comprises 21,837 clinical records of 10 seconds each from 18,885 patients.
 
 * Multi Label Complexity: Records are annotated with up to two cardiologists using 71 unique statements.
@@ -35,13 +35,13 @@ To transform raw medical waveforms into model ready tensors, a robust preprocess
 ### 1. Modular Residual Blocks with SE Attention
 
 The core of the model is a custom Residual Block integrated with a Squeeze and Excitation (SE) attention mechanism.
-* Residual Connections: These allow for training deeper networks by preventing vanishing gradients, enabling the model to learn complex morphological patterns.
-* SE Blocks: I implemented lead-wise attention to dynamically weight the importance of each of the 12 ECG leads, helping the model focus on the most diagnostic channels for specific pathologies
+* Residual Connections: These allow for training deeper networks by preventing vanishing gradients, enabling the model to learn complex            morphological patterns.
+* SE Blocks: I implemented lead-wise attention to dynamically weight the importance of each of the 12 ECG leads, helping the model focus on the    most diagnostic channels for specific pathologies
 
 #### Multi Task Adaptation: Binary vs Multi Class:
 I adapted the architecture to handle two distinct clinical prediction tasks:
-* Binary Classification: Optimized for specific "Yes/No" diagnostic questions (e.g., Normal vs. Abnormal). This version uses a single output node with a Sigmoid activation and Binary Crossentropy loss.
-* Multi-Class (Multi-Label) Classification: Designed to handle the clinical reality of co-occurring diseases. This version outputs probabilities for the 5 diagnostic superclasses (NORM, MI, STTC, CD, HYP) using a multi-output Sigmoid layer and multi-hot encoded labels.
+* Binary Classification: Optimized for specific "Yes/No" diagnostic questions (e.g., Normal vs. Abnormal). This version uses a single output       node with a Sigmoid activation and Binary Crossentropy loss.
+* Multi-Class (Multi-Label) Classification: Designed to handle the clinical reality of co-occurring diseases. This version outputs probabilities   for the 5 diagnostic superclasses (NORM, MI, STTC, CD, HYP) using a multi-output Sigmoid layer and multi-hot encoded labels.
 
 ### 2. Advanced Feature Extraction - Integrating CBAM
  
@@ -51,3 +51,82 @@ To systematically reduce avoidable bias and improve the sensitivity of the model
 Unlike the SE-block which only focuses on lead importance, the CBAM blocks I implemented perform two sequential operations:
 * Channel Attention: Identifies which of the 12 leads contain the most relevant diagnostic features.
 * Spatial Attention: Focuses on the temporal axis (the 1000 time steps), allowing the model to "lock onto" specific segments of the heartbeat, such as the ST-segment or the QRS complex, where pathologies typically manifest.
+
+#### Impact on Output and Diagnostic Performance
+Implementing CBAM directly influenced the model's predictive behavior and output reliability:
+
+### Scaling for avoidable bias
+To systematically reduce avoidable bias, I leveraged the modularity of the residual blocks to build and test different model sizes:
+* Model Scaling: I experimented with varying depths (number of ResBlocks) and widths (filters ranging from 32 to 256).
+* Bias vs. Variance Tradeoff: By starting with a "Small" model and progressively increasing capacity, I was able to drive down training error      while monitoring validation performance to ensure the model generalized well to unseen patient data from the 10th fold.
+
+<img width="666" height="203" alt="Screenshot 2026-02-22 at 10 56 52" src="https://github.com/user-attachments/assets/14638eb3-efb7-4573-b8c9-e4a31d2ea3b5" />
+
+
+## Handling Class Imbalance
+The PTB-XL dataset is highly imbalanced, with a large fraction of healthy "Normal" (NORM) records (9,528) compared to rarer conditions like "Hypertrophy" (HYP) (2,137).
+* Challenge: Standard accuracy can be deceptive in these scenarios, as a model could achieve ~44% accuracy just by predicting "Normal" for every   patient
+* Solution: I prioritized Macro-Averaged AUROC and AUPRC as the primary metrics. These metrics ensure that the model’s performance on rare but     life threatening conditions (MI- myocardial Infarction) is not overshadowed by its performance on healthy subjects.
+
+The high capacity models built with CBAM were less prone to the "majority class bias". This resulted in significantly better Macro Averaged AUROC scores, particularly for minority classes like Hypertrophy (HYP), which often have very subtle spatial markers in a standard ECG.
+
+## Training Strategy & Hyperparameter Optimization
+
+To evaluate the different architectures and address the challenges of the PTB-XL dataset, I employed a multi stage training strategy. Each model (Binary, Multiclass, and CBAM-ResNet) was trained using a systematic approach to ensure reproducibility and optimal convergence.
+
+### 1. Data Split & Cross-Validation
+Following the official PTB-XL benchmarking procedure to ensure high label quality and prevent data leakage:
+* Training Set: Folds 1–8.
+* Validation Set: Fold 9, used for hyperparameter tuning and early stopping.
+* Test Set: Fold 10, strictly reserved for final performance evaluation.
+
+### 2. Optimization Configuration
+Across all models, the following core parameters were utilized to stabilize the training of deep residual paths:
+* Optimizer: Adam with an initial learning rate of 3e-4
+* Loss Function:
+   * Binary Crossentropy for binary and multi-label tasks.
+   * Sparse Categorical Crossentropy for initial multiclass experiments.
+* Batch Size: 64, balanced for GPU memory efficiency and gradient stability.
+
+### 3. Training Callbacks & Regularization
+To manage the training process and prevent overfitting, I implemented several Keras callbacks
+* Early Stopping: Monitored val_loss with a patience of 7–10 epochs to stop training once the model began to overfit.
+* Learning Rate Scheduler: Utilized ReduceLROnPlateau to decrease the learning rate by a factor of 0.1 when the validation loss plateaued,         allowing for finer convergence in the final stages.
+* Model Checkpointing: Automatically saved the best performing model weights based on the lowest validation loss.
+* Dropout: Applied a rate of 0.3 to 0.5 before the final dense layers to provide robust regularization.
+
+### 4. Hardware and Environment
+Unlike many cloud-based implementations, this project was developed and trained locally
+* Processor: Apple M4 Chip.
+* Memory: 16GB Unified RAM
+* Acceleration: Utilized the Metal Performance Shaders (MPS) backend in TensorFlow/PyTorch to execute 1D-convolutions and attention mechanisms    directly on the M4's GPU and Neural Engine.
+* Environment: Managed via a local Conda environment, ensuring consistent dependency management for libraries like wfdb, scipy, and tensorflow.
+
+### 5. Training Strategy per Model Version
+To systematically reduce avoidable bias and find the optimal model capacity, I employed a multi-stage training strategy across the different versions of the architecture.
+
+#### Model V1 & V2: Baseline and Res-SE
+* Objective: Establish a performance baseline and evaluate the impact of channel-wise    attention.
+* Optimization: Adam optimizer ($3 \times 10^{-4}$ learning rate) with a batch size of   64.
+* Bias Management: Used a shallower 3–5 block depth to identify initial underfitting     (avoidable bias) before scaling up.
+
+#### Model V3: Res-CBAM (Final Version)
+* Objective: Capture complex spatial and temporal features for multilabel CVD            prediction.
+* Attention Strategy: Sequentially applied Channel Attention (to weigh the 12 leads)     and Spatial Attention (to focus on specific cardiac intervals like the QRS or ST       segment).
+* Learning Rate Scheduling: Implemented ReduceLROnPlateau with a factor of 0.1, which    proved essential for fine tuning the CBAM parameters once the validation loss began    to plateau.
+* Regularization: Increased Dropout to 0.5 in the final layers to compensate for the     higher model capacity and prevent overfitting on the training set.
+
+## Key Results & Performance Analysis
+
+The evaluation was conducted using the 10th Fold of the PTB-XL dataset. By evolving the architecture from a baseline CNN to a high capacity Res-CBAM model, I successfully reduced avoidable bias and improved detection across all cardiovascular superclasses.
+
+### Architectural Performance
+The transition to a dual-attention mechanism (CBAM) allowed the model to focus on both the critical leads (Channel Attention) and specific segments of the ECG waveform (Spatial Attention), such as the ST-segment or QRS complex.
+
+<img width="657" height="197" alt="Screenshot 2026-02-22 at 11 35 23" src="https://github.com/user-attachments/assets/7ee896d1-5627-4ce4-ba60-6e2ca865e790" />
+
+###Diagnostic Superclass Breakdown (Final Model)
+
+<img width="604" height="214" alt="Screenshot 2026-02-22 at 11 37 00" src="https://github.com/user-attachments/assets/0cc538a7-2f0b-4853-81ea-6e95b9cd6600" />
+
+
