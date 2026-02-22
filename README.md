@@ -13,22 +13,22 @@ The PTB-XL dataset is currently the largest freely accessible clinical 12-lead E
 To transform raw medical waveforms into model ready tensors, a robust preprocessing pipeline was implemented. This stage is critical for ensuring the ResNet architecture focuses on clinical morphologies rather than recording artifacts.
 
 1. Signal Acquisition & Resampling
-   
-Raw data is converted from the binary WFDB format. While the dataset is available at 500 Hz, this project utilizes the 100 Hz downsampled version to maintain a standardized input shape of (1000, 12) for 10 second recordings.
 
-2. Artifact Removal (Filtering)
-   
-ECG signals are inherently noisy. A 3rd order Butterworth Bandpass Filter (0.5Hz - 45Hz) is applied to:
-* Eliminate Baseline Wander: Removing low-frequency drift caused by patient respiration or movement.
-* Suppress Powerline Interference: Reducing high-frequency 50/60Hz noise (static noise).
+   Raw data is converted from the binary WFDB format. While the dataset is available at 500 Hz, this project utilizes the 100 Hz downsampled        version to maintain a standardized input shape of (1000, 12) for 10 second recordings.
 
-3. Lead wise Normalization
+3. Artifact Removal (Filtering)
    
-To ensure the model is invariant to differing signal amplitudes across patients, Z score normalization is performed independently for each of the 12 leads. This standardizes the signal to have a zero mean and unit variance, which accelerates convergence in deep residual layers.
+   ECG signals are inherently noisy. A 3rd order Butterworth Bandpass Filter (0.5Hz - 45Hz) is applied to:
+   * Eliminate Baseline Wander: Removing low-frequency drift caused by patient respiration or movement.
+   * Suppress Powerline Interference: Reducing high-frequency 50/60Hz noise (static noise).
 
-5. Diagnostic Aggregation & Labeling
+4. Lead wise Normalization
+
+   To ensure the model is invariant to differing signal amplitudes across patients, Z score normalization is performed independently for each of    the 12 leads. This standardizes the signal to have a zero mean and unit variance, which accelerates convergence in deep residual layers.
+
+6. Diagnostic Aggregation & Labeling
    
-Using the scp_statements.csv metadata, the fine-grained diagnostic labels are mapped to the 5 primary superclasses. This creates a Multi-Hot encoded target, acknowledging that a single patient may present with multiple co-occurring cardiovascular conditions.
+   Using the scp_statements.csv metadata, the fine-grained diagnostic labels are mapped to the 5 primary superclasses. This creates a Multi-Hot     encoded target, acknowledging that a single patient may present with multiple co-occurring cardiovascular conditions.
 
 ## Model Architecture
 
