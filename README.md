@@ -32,12 +32,12 @@ Using the scp_statements.csv metadata, the fine-grained diagnostic labels are ma
 
 ## Model Architecture
 
-###1. Modular Residual Blocks with SE Attention
+### 1. Modular Residual Blocks with SE Attention
 
 The core of the model is a custom Residual Block integrated with a Squeeze and Excitation (SE) attention mechanism.
 * Residual Connections: These allow for training deeper networks by preventing vanishing gradients, enabling the model to learn complex morphological patterns.
 * SE Blocks: I implemented lead-wise attention to dynamically weight the importance of each of the 12 ECG leads, helping the model focus on the most diagnostic channels for specific pathologies
 
-###2. Advanced Feature Extraction - Integrating CBAM
-
+### 2. Advanced Feature Extraction - Integrating CBAM
+ 
 To systematically reduce avoidable bias and improve the sensitivity of the model, I transitioned from simple Squeeze and Excitation (SE) to CBAM (Convolutional Block Attention Module). This was critical for capturing the multi dimensional nature of 12-lead ECG signals.
